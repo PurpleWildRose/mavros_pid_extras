@@ -1,0 +1,3 @@
+# Prepend the installed cmake modules to the cmake module path
+# 目的是让 CMake 优先使用 libmavconn 库关联的 ROS 包中 cmake/Modules 目录下的自定义模块，确保在构建过程中使用正确版本的模块（而非系统中可能存在的其他版本）。
+list(INSERT CMAKE_MODULE_PATH 0 "${libmavconn_DIR}/../../../@CATKIN_PACKAGE_SHARE_DESTINATION@/cmake/Modules")

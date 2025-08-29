@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>mavros_offical_conn</name>
+    <version>1.0.0</version>
+
+    <description>
+    MAVLink communication library.
+    This library provide unified connection handling classes
+    and URL to connection object mapper.
+
+    This library can be used in standalone programs.
+  </description>
+
+  <!-- offical communication -->
+    <!-- <maintainer email="vooon341@gmail.com">Vladimir Ermakov</maintainer> -->
+    <!-- <author email="vooon341@gmail.com">Vladimir Ermakov</author> -->
+
+  <maintainer email="3287486878@qq.com">Xiyong Chen</maintainer>
+  <author email="3287486878@qq.com">Xiyong Chen</author>
+  <license>GPLv3</license>
+  <license>LGPLv3</license>
+  <license>BSD</license>
+
+  <!-- offical tutorials wiki website-->
+  <url type="website">http://wiki.ros.org/mavros</url>
+  <url type="repository">https://github.com/mavlink/mavros.git</url>
+  <url type="bugtracker">https://github.com/mavlink/mavros/issues</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>boost</depend>
+  <depend>mavlink</depend>
+  <depend>libconsole-bridge-dev</depend>
+
+  <!-- 告诉 ROS 文档工具：该包使用 rosdoc.yaml 配置文件来生成代码文档 -->
+  <export>
+    <rosdoc config="rosdoc.yaml" />
+  </export>
+
+</package>

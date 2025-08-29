@@ -1,5 +1,10 @@
 ### MAVROS TTA PID
 
+```
+chmod a+x install_geographiclib_dataset.sh
+./insta......sh
+```
+
 # Operation
 
 ```

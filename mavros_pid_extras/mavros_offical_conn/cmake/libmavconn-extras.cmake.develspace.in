@@ -1,0 +1,12 @@
+# Prepend cmake modules from source directory to the cmake module path
+
+# CMAKE_MODULE_PATH：这是 CMake 的一个内置变量，用于指定 CMake 模块（.cmake 文件）的搜索路径。当使用 find_package()、include() 等命令时，CMake 会从这个变量指定的路径中查找相关模块。
+# list(INSERT ...)：这是 CMake 操作列表的命令，INSERT 子命令用于在列表的指定位置插入新元素。
+
+#     0 表示插入位置（列表索引从 0 开始），这里指定插入到列表的最前面。
+#     @CMAKE_CURRENT_SOURCE_DIR@/cmake/Modules 是要插入的路径，其中：
+#         @CMAKE_CURRENT_SOURCE_DIR@ 是一个 CMake 变量（在配置时会被实际路径替换），表示当前 CMakeLists.txt 所在的目录。
+#         整体路径指向当前项目中 cmake/Modules 文件夹（通常用于存放项目自定义的 .cmake 模块）。
+# CMake 模板文件（.in 文件）中的变量引用方式（使用 @ 包裹变量）。
+# 变量不会被 CMake 直接解析，而是在文件生成阶段（通过 configure_file 命令） 被替换为实际值。
+list(INSERT CMAKE_MODULE_PATH 0 "@CMAKE_CURRENT_SOURCE_DIR@/cmake/Modules")
