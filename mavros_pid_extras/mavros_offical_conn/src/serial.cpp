@@ -54,11 +54,17 @@ MAVConnSerial::MAVConnSerial(uint8_t system_id, uint8_t component_id,
 		serial_dev.open(device);
 
 		// Set baudrate and 8N1 mode
+
+		// 8：表示数据位长度为 8 位（每个字符由 8 个二进制位组成）。
+		// N：表示无校验位（No parity），即不使用奇偶校验来检测数据传输错误。
+		// 1：表示停止位长度为 1 位（用于标记一个数据帧的结束）。
+		// 总计每个字符需要传输 10 位（1 起始位 + 8 数据位 + 1 停止位）。
+
 		serial_dev.set_option(SPB::baud_rate(baudrate));
 		serial_dev.set_option(SPB::character_size(8));
 		serial_dev.set_option(SPB::parity(SPB::parity::none));
 		serial_dev.set_option(SPB::stop_bits(SPB::stop_bits::one));
-
+// 处理硬件流控制（根据 hwflow 参数配置）
 #if BOOST_ASIO_VERSION >= 101200 || !defined(__linux__)
 		// Flow control setting in older versions of Boost.ASIO is broken, use workaround (below) for now.
 		serial_dev.set_option(SPB::flow_control( (hwflow) ? SPB::flow_control::hardware : SPB::flow_control::none));
@@ -89,6 +95,7 @@ MAVConnSerial::MAVConnSerial(uint8_t system_id, uint8_t component_id,
 		}
 #endif
 
+// 在 Linux 系统上启用低延迟模式（Low Latency）主要用于减少系统响应时间，适用于实时音频处理、嵌入式控制、游戏服务器等对延迟敏感的场景。
 #if defined(__linux__)
 		// Enable low latency mode on Linux
 		{
@@ -204,24 +211,35 @@ void MAVConnSerial::send_message(const mavlink::Message &message, const uint8_t 
 
 		if (tx_q.size() >= MAX_TXQ_SIZE)
 			throw std::length_error("MAVConnSerial::send_message: TX queue overflow");
-
+		
+		// 序列化消息并加入队列
+		// sys_id：发送方的系统 ID（uint8_t），标识消息来自哪个系统（如无人机、地面站）。
+		// component_id：发送方的组件 ID（uint8_t），标识消息来自哪个组件（如飞控、摄像头等）。
 		tx_q.emplace_back(message, get_status_p(), sys_id, source_compid);
 	}
+	// 触发发送...
 	io_service.post(std::bind(&MAVConnSerial::do_write, shared_from_this(), true));
 }
 
 void MAVConnSerial::do_read(void)
 {
+	// 获取自身共享指针
 	auto sthis = shared_from_this();
+	// 发起异步读取
 	serial_dev.async_read_some(
+			// buffer(rx_buf) 指定接收缓冲区
 			buffer(rx_buf),
+			// 完成处理程序（lambda 表达式），当读取操作完成（或出错）时被调用。
+			// error_code error：读取操作的错误状态（成功时为 0）。
+			// size_t bytes_transferred：实际读取到的字节数。
 			[sthis] (error_code error, size_t bytes_transferred) {
 				if (error) {
 					CONSOLE_BRIDGE_logError(PFXd "receive: %s", sthis->conn_id, error.message().c_str());
 					sthis->close();
 					return;
 				}
-
+				// total complete bytes.
+				// std::cout << "Receive : " << bytes_transferred << " bytes" << std::endl;
 				sthis->parse_buffer(PFX, sthis->rx_buf.data(), sthis->rx_buf.size(), bytes_transferred);
 				sthis->do_read();
 			});
@@ -250,6 +268,7 @@ void MAVConnSerial::do_write(bool check_tx_state)
 					return;
 				}
 
+				// 更新发送统计
 				sthis->iostat_tx_add(bytes_transferred);
 				lock_guard lock(sthis->mutex);
 

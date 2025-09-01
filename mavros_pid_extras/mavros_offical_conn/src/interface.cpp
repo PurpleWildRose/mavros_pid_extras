@@ -49,7 +49,9 @@ MAVConnInterface::MAVConnInterface(uint8_t system_id, uint8_t component_id) :
 	last_rx_total_bytes(0),
 	last_iostat(steady_clock::now())
 {
+	// 将 conn_id_counter 的值原子地加 1（自增操作不被其他线程中断）
 	conn_id = conn_id_counter.fetch_add(1);
+	// 确保某个函数仅被执行一次，即使在多线程环境下被多次调用也能保证这一点。
 	std::call_once(init_flag, init_msg_entry);
 }
 
@@ -103,6 +105,7 @@ void MAVConnInterface::parse_buffer(const char *pfx, uint8_t *buf, const size_t 
 	for (; bytes_received > 0; bytes_received--) {
 		auto c = *buf++;
 
+		// 逐字节解析输入的二进制数据流，从中提取完整的 MAVLink 消息帧。它负责处理消息的帧同步、字段解析、校验等底层工作，是字节流到结构化消息的关键转换函数。
 		auto msg_received = static_cast<Framing>(mavlink::mavlink_frame_char_buffer(&m_buffer, &m_parse_status, c, &message, &m_mavlink_status));
 
 		if (msg_received != Framing::incomplete) {
@@ -139,6 +142,7 @@ void MAVConnInterface::log_send(const char *pfx, const mavlink_message_t *msg)
 			msg->msgid, msg->len, msg->sysid, msg->compid, msg->seq);
 }
 
+// PATH: /opt/ros/noetic/mavlink/v2/message.h
 void MAVConnInterface::log_send_obj(const char *pfx, const mavlink::Message &msg)
 {
 	CONSOLE_BRIDGE_logDebug("%s%zu: send: %s", pfx, conn_id, msg.to_yaml().c_str());
@@ -193,6 +197,7 @@ Protocol MAVConnInterface::get_protocol_version()
 
 /**
  * Parse host:port pairs
+ * 		主要功能是从输入的字符串中提取主机名（或 IP 地址）和端口号，并在解析失败或格式不完整时使用默认值。
  */
 static void url_parse_host(std::string host,
 		std::string &host_out, int &port_out,
@@ -229,6 +234,7 @@ static void url_parse_host(std::string host,
 
 /**
  * Parse ?ids=sid,cid
+ * 		解析 URL 查询参数的工具函数，主要功能是从查询字符串中提取 sysid（系统 ID）和 compid（组件 ID），这两个参数在 MAVLink 协议中用于标识消息的发送方或接收方。
  */
 static void url_parse_query(std::string query, uint8_t &sysid, uint8_t &compid)
 {
@@ -272,6 +278,7 @@ static MAVConnInterface::Ptr url_parse_serial(
 	url_parse_host(path, file_path, baudrate, MAVConnSerial::DEFAULT_DEVICE, MAVConnSerial::DEFAULT_BAUDRATE);
 	url_parse_query(query, system_id, component_id);
 
+	// 创建一个 MAVConnSerial 类的实例，并将其封装为 std::shared_ptr<MAVConnInterface> 智能指针返回
 	return std::make_shared<MAVConnSerial>(system_id, component_id,
 			file_path, baudrate, hwflow);
 }
@@ -293,7 +300,7 @@ static MAVConnInterface::Ptr url_parse_udp(
 	bind_pair.assign(hosts.begin(), sep_it);
 	remote_pair.assign(sep_it + 1, hosts.end());
 
-	// udp://0.0.0.0:14555@:14550
+	// udp://0.0.0.0:14555@ip:14550
 	url_parse_host(bind_pair, bind_host, bind_port, "0.0.0.0", MAVConnUDP::DEFAULT_BIND_PORT);
 	url_parse_host(remote_pair, remote_host, remote_port, MAVConnUDP::DEFAULT_REMOTE_HOST, MAVConnUDP::DEFAULT_REMOTE_PORT);
 	url_parse_query(query, system_id, component_id);
