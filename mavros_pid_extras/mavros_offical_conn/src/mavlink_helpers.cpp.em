@@ -20,8 +20,8 @@
 @# EmPy template of dialect helpers source file
 @#
 
-#include <mavconn/console_bridge_compat.h>
-#include <mavconn/interface.h>
+#include <mavros_proxy/console_bridge_compat.h>
+#include <mavros_proxy/interface.h>
 
 // AUTOMATIC GENERATED FILE!
 // from src/mavlink_helpers.cpp.em

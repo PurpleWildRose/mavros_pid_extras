@@ -17,9 +17,9 @@
 
 #include <cassert>
 
-#include <mavconn/console_bridge_compat.h>
-#include <mavconn/thread_utils.h>
-#include <mavconn/tcp.h>
+#include <mavros_proxy/console_bridge_compat.h>
+#include <mavros_proxy/thread_utils.h>
+#include <mavros_proxy/tcp.h>
 
 // Ensure the correct io_service() is called based on boost version
 #if BOOST_VERSION >= 107000

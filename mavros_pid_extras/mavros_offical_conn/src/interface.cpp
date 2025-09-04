@@ -18,12 +18,12 @@
 #include <set>
 #include <cassert>
 
-#include <mavconn/console_bridge_compat.h>
-#include <mavconn/interface.h>
-#include <mavconn/msgbuffer.h>
-#include <mavconn/serial.h>
-#include <mavconn/udp.h>
-#include <mavconn/tcp.h>
+#include <mavros_proxy/console_bridge_compat.h>
+#include <mavros_proxy/interface.h>
+#include <mavros_proxy/msgbuffer.h>
+#include <mavros_proxy/serial.h>
+#include <mavros_proxy/udp.h>
+#include <mavros_proxy/tcp.h>
 
 namespace mavconn {
 #define PFX	"mavconn: "

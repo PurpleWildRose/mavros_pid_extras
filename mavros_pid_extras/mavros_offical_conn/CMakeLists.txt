@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(mavros_offical_conn)
+project(mavros_proxy)
 
 # Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -13,34 +13,36 @@ find_package(Boost REQUIRED COMPONENTS system)
 # add package modules path, not needed in dependend packages
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include(EnableCXX11)    # find EnableCXX11.cmake
+
 include(MavrosMavlink)  # find MavrosMavlink.cmake
 
+# set(MAVLINK_DIALECT common ...)
 ###################################
 ## catkin specific configuration ##
 ###################################
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS include utils
   LIBRARIES mavconn
   DEPENDS Boost console_bridge mavlink
   CFG_EXTRAS libmavconn-extras.cmake
 )
 
-message("=================${CMAKE_CURRENT_BINARY_DIR}================")
 include_directories(
   include
+  ${mavlink_INCLUDE_DIRS}
   SYSTEM
   ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/include
   ${Boost_INCLUDE_DIRS}
-  ${mavlink_INCLUDE_DIRS}
   ${console_bridge_include_DIR}
 )
 
-add_library(mavconn
+add_library(mavconn SHARED
   ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/src/mavlink_helpers.cpp
   src/interface.cpp
   src/serial.cpp
   src/tcp.cpp
   src/udp.cpp
+  
 )
 
 target_link_libraries(mavconn
@@ -49,10 +51,26 @@ target_link_libraries(mavconn
 )
 
 # Use catkin-supplied em_expand macros to generate source files
+
+# Use catkin-supplied em_expand macros to generate source files
+# em_expand 通常用于处理带模板标记的文件（扩展名为 .in 或 .em），将模板中的变量替换为实际值，并生成最终的可编译文件。参数含义如下：
+
+#     第一个参数：${CMAKE_CURRENT_SOURCE_DIR}/mavlink.context.py.in
+#         模板上下文文件（.in 表示输入模板），通常包含需要传递给模板引擎的变量定义（如 Python 字典）。
+#         例如可能定义了 MAVLink 版本、消息类型等配置信息。
+#     第二个参数：${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/mavlink.context.py
+#         第一个参数的输出文件，即处理后的上下文文件（通常是纯 Python 脚本），会被模板引擎读取以获取变量值。
+#         路径位于构建目录（binary_dir）的 catkin_generated 子目录，这是 Catkin 构建系统的典型生成文件位置。
+#     第三个参数：${CMAKE_CURRENT_SOURCE_DIR}/src/mavlink_helpers.cpp.em
+#         源代码模板文件（.em 通常表示 Embedded Python 模板），包含带标记的 C++ 代码框架（如 @VAR@ 或 ${VAR} 形式的变量占位符）。
+#         例如可能包含 MAVLink 消息解析、序列化的通用逻辑框架。
+#     第四个参数：${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/src/mavlink_helpers.cpp
+#         最终生成的目标源代码文件，是模板引擎处理 .em 文件后得到的可编译 C++ 代码。
+#         生成文件会被放入构建目录的生成代码目录，避免污染源码目录。
 em_expand(${CMAKE_CURRENT_SOURCE_DIR}/mavlink.context.py.in
   ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/mavlink.context.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/mavconn/mavlink_dialect.h.em
-  ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/include/mavconn/mavlink_dialect.h)
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/mavros_proxy/mavlink_dialect.h.em
+  ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/include/mavros_proxy/mavlink_dialect.h)
 
 em_expand(${CMAKE_CURRENT_SOURCE_DIR}/mavlink.context.py.in
   ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/mavlink.context.py
@@ -61,10 +79,9 @@ em_expand(${CMAKE_CURRENT_SOURCE_DIR}/mavlink.context.py.in
 
 message(STATUS "Copy mavlink_dialect.h to source tree")
 file(
-  COPY ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/include/mavconn/mavlink_dialect.h
-  DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/include/mavconn/
-  )
-
+  COPY ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/include/mavros_proxy/mavlink_dialect.h
+  DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/include/mavros_proxy/
+)
 
 #############
 ## Install ##
@@ -73,7 +90,7 @@ file(
 # all install targets should use catkin DESTINATION variables
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
 
-## Mark executables and/or libraries for installation
+# Mark executables and/or libraries for installation
 install(TARGETS mavconn
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -81,13 +98,13 @@ install(TARGETS mavconn
 )
 
 ## Mark cpp header files for installation
-install(DIRECTORY include/mavconn/
-  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}/mavconn
+install(DIRECTORY include/mavros_proxy/
+  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}/mavros_proxy
   FILES_MATCHING PATTERN "*.h"
 )
 
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/include/mavconn/
-  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}/mavconn
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/catkin_generated/include/mavros_proxy/
+  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}/mavros_proxy
   FILES_MATCHING PATTERN "*.h"
 )
 

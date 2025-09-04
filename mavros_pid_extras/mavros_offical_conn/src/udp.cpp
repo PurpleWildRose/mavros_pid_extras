@@ -17,9 +17,9 @@
 
 #include <cassert>
 
-#include <mavconn/console_bridge_compat.h>
-#include <mavconn/thread_utils.h>
-#include <mavconn/udp.h>
+#include <mavros_proxy/console_bridge_compat.h>
+#include <mavros_proxy/thread_utils.h>
+#include <mavros_proxy/udp.h>
 
 namespace mavconn {
 

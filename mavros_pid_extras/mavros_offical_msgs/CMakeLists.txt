@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS geographic_msgs geometry_msgs message_ge
 # add_service_files(DIRECTORY srv FILES
 #     )
 
-generate_messages(DEPENDENCIES geographic_msgs geometry_msgs sensor_msgs std_msgs)
+# generate_messages(DEPENDENCIES geographic_msgs geometry_msgs sensor_msgs std_msgs)
 
 catkin_package(
     INCLUDE_DIRS include
