@@ -1,5 +1,5 @@
 <arg name="fcu_url" default="/dev/ttyACM0:15200"/>
-<arg name="gcs_url" default="udp:@"/>
+<arg name="gcs_url" default="udp://127.0.0.1:14553@127.0.0.1:14560" />
 <arg name="tgt_system" default="1"/>
 <arg name="tgt_component" default="1"/>
 <arg name="log_output" default="screen"/>
