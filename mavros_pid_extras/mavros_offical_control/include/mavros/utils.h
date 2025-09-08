@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <type_traits>
 #include <mavros_proxy/thread_utils.h>
 #include <ros/console.h>

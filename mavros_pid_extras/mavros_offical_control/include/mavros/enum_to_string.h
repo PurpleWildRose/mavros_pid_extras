@@ -1,7 +1,8 @@
 #pragma once
 
-#include <array>
+#include <string>
 #include <unordered_map>
+#include <mavros/utils.h>
 #include <mavros_proxy/mavlink_dialect.h>
 #include <ros/console.h>
 
