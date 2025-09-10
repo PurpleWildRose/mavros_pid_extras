@@ -1,4 +1,7 @@
 # STATUSTEXT message representation
+# 状态文本消息
+# 飞控或机载系统的文本提示（如 “GPS 信号弱”“电池低电量”“校准成功”），用于用户交互或日志记录 
+#
 # https://mavlink.io/en/messages/common.html#STATUSTEXT
 
 # Severity levels

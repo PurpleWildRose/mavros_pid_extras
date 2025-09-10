@@ -1,3 +1,6 @@
+# 系统状态消息
+# 飞控硬件系统的核心健康状态（传感器在线状态、CPU 负载、内存使用、通信链路状态），是系统级故障诊断的核心
+
 std_msgs/Header header
 
 uint32 sensors_present

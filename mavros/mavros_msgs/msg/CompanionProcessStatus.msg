@@ -1,4 +1,6 @@
 # Mavros message: COMPANIONPROCESSSTATUS
+# 伴随计算机状态消息
+# 监控 “伴随计算机”（如机载树莓派）的进程状态（CPU 占用、内存使用、进程 ID），确保机载计算模块正常运行
 
 std_msgs/Header header
 

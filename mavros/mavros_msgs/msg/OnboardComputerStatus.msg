@@ -1,4 +1,6 @@
 # Mavros message: ONBOARDCOMPUTERSTATUS
+# 机载计算机状态消息
+# 发布飞控关联的机载计算机硬件状态（温度、风扇转速、存储剩余空间），用于硬件健康诊断
 
 std_msgs/Header header
 

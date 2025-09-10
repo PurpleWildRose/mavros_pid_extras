@@ -30,13 +30,16 @@ using mavlink::mavlink_message_t;
 using plugin::PluginBase;
 using utils::enum_value;
 
-
+/**
+ * MavRos
+ * @brief 主要负责 MAVROS 节点的初始化、FCU（飞控）与 GCS（地面站）的连接管理、插件加载与消息路由等核心逻辑
+ */
 MavRos::MavRos() :
-	mavlink_nh("mavlink"),		// allow to namespace it
+	mavlink_nh("mavlink"),									// allow to namespace it
 	last_message_received_from_gcs(0),
 	fcu_link_diag("FCU connection"),
 	gcs_link_diag("GCS bridge"),
-	plugin_loader("mavros", "mavros::plugin::PluginBase"),
+	plugin_loader("mavros", "mavros::plugin::PluginBase"), 	// 创建一个ClassLoader，用来加载plugin. [pkg, pluglib_base::PluginBase]
 	plugin_subscriptions{}
 {
 	std::string fcu_url, gcs_url;
@@ -61,6 +64,7 @@ MavRos::MavRos() :
 	nh.param("target_system_id", tgt_system_id, 1);
 	nh.param("target_component_id", tgt_component_id, 1);
 	nh.param("startup_px4_usb_quirk", px4_usb_quirk, false);
+	// 读取插件黑白名单（控制哪些插件加载）
 	nh.getParam("plugin_blacklist", plugin_blacklist);
 	nh.getParam("plugin_whitelist", plugin_whitelist);
 
@@ -72,6 +76,7 @@ MavRos::MavRos() :
 		ROS_INFO("Find param odom_frame_id: %s", odom_frame_id.c_str());
 	if (nh.param<std::string>("map_frame_id", map_frame_id, "map"))
 		ROS_INFO("Find param map_frame_id: %s", map_frame_id.c_str());
+	// 确保 MAVROS 发布的位姿、里程计等消息使用与 ROS 系统一致的坐标系，避免坐标转换错误。
 	mav_uas.set_base_link_frame_id(base_link_frame_id);
 	mav_uas.set_odom_frame_id(odom_frame_id);
 	mav_uas.set_map_frame_id(map_frame_id);
@@ -84,6 +89,7 @@ MavRos::MavRos() :
 
 	ROS_INFO_STREAM("FCU URL: " << fcu_url);
 	try {
+		// 通过 MAVConnInterface::open_url_no_connect 打开飞控连接（不立即建立连接），并初始化连接诊断
 		fcu_link = MAVConnInterface::open_url_no_connect(fcu_url, system_id, component_id);
 		// may be overridden by URL
 		system_id = fcu_link->get_system_id();
@@ -112,6 +118,7 @@ MavRos::MavRos() :
 		fcu_link->set_protocol_version(mavconn::Protocol::V10);
 	}
 
+	// 若配置了 gcs_url，建立与地面站的连接，实现 FCU 与 GCS 的消息转发（MAVROS 作为中间桥接）：
 	if (gcs_url != "") {
 		ROS_INFO_STREAM("GCS URL: " << gcs_url);
 		try {
@@ -131,6 +138,7 @@ MavRos::MavRos() :
 		ROS_INFO("GCS bridge disabled");
 
 	// ROS mavlink bridge
+	// 初始化 ROS 话题 mavlink/from（发布 FCU→ROS 的 MAVLink 消息）和 mavlink/to（订阅 ROS→FCU 的 MAVLink 消息）：
 	mavlink_pub = mavlink_nh.advertise<mavros_msgs::Mavlink>("from", 100);
 	mavlink_sub = mavlink_nh.subscribe("to", 100, &MavRos::mavlink_sub_cb, this,
 		ros::TransportHints()
@@ -146,6 +154,7 @@ MavRos::MavRos() :
 
 	// prepare plugin lists
 	// issue #257 2: assume that all plugins blacklisted
+	// MAVROS 的核心设计 ——插件化架构，通过 plugin_loader（ROS pluginlib 工具）加载插件，支持按需扩展功能（如 IMU、GPS、电机控制等）
 	if (plugin_blacklist.empty() and !plugin_whitelist.empty())
 		plugin_blacklist.emplace_back("*");
 
@@ -183,7 +192,7 @@ MavRos::MavRos() :
 
 		gcs_link_diag.set_connection_status(true);
 	}
-
+	// 针对 PX4 飞控的 USB 启动特性，发送初始化指令（模拟 QGroundControl 的启动逻辑），确保飞控通过 USB 正常加载 MAVLink 服务：
 	if (px4_usb_quirk)
 		startup_px4_usb_quirk();
 
@@ -199,6 +208,7 @@ MavRos::MavRos() :
 		tgt_system_id, tgt_component_id);
 }
 
+// spin() 函数启动 ROS 异步自旋（多线程处理回调），并定期更新诊断信息：
 void MavRos::spin()
 {
 	ros::AsyncSpinner spinner(4 /* threads */);
@@ -242,6 +252,7 @@ void MavRos::spin()
 	spinner.stop();
 }
 
+// 将飞控发来的 MAVLink 消息转换为 ROS 消息，发布到 mavlink/from 话题：
 void MavRos::mavlink_pub_cb(const mavlink_message_t *mmsg, Framing framing)
 {
 	auto rmsg = boost::make_shared<mavros_msgs::Mavlink>();
@@ -254,6 +265,7 @@ void MavRos::mavlink_pub_cb(const mavlink_message_t *mmsg, Framing framing)
 	mavlink_pub.publish(rmsg);
 }
 
+// 订阅 mavlink/to 话题的 ROS 消息，转换为 MAVLink 消息并发送给飞控：
 void MavRos::mavlink_sub_cb(const mavros_msgs::Mavlink::ConstPtr &rmsg)
 {
 	mavlink_message_t mmsg;
@@ -264,6 +276,7 @@ void MavRos::mavlink_sub_cb(const mavros_msgs::Mavlink::ConstPtr &rmsg)
 		ROS_ERROR("Drop mavlink packet: convert error.");
 }
 
+// 将飞控发来的 MAVLink 消息路由到所有订阅该消息 ID 的插件，由插件处理具体逻辑（如 IMU 插件处理 MAVLINK_MSG_ID_SCALED_IMU）：
 void MavRos::plugin_route_cb(const mavlink_message_t *mmsg, const Framing framing)
 {
 	auto it = plugin_subscriptions.find(mmsg->msgid);
@@ -291,7 +304,7 @@ static bool pattern_match(std::string &pattern, std::string &pl_name)
 
 /**
  * @brief Checks that plugin blacklisted
- *
+ *			is_blacklisted：插件黑白名单判断
  * Operation algo:
  *
  *  1. if blacklist and whitelist is empty: load all

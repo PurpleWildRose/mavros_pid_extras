@@ -1,4 +1,6 @@
 # Current autopilot estimator state
+# 估计器状态消息
+# 发布飞控状态估计器（如 EKF/UKF）的工作状态（滤波收敛性、传感器权重、误差范围），判断定位是否可靠
 #
 # https://mavlink.io/en/messages/common.html#ESTIMATOR_STATUS_FLAGS
 

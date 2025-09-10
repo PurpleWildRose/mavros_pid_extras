@@ -1,4 +1,6 @@
 # Msg for Debug MAVLink API
+# 调试值消息
+# 用于开发者自定义调试数据（如算法中间变量、传感器原始值），支持多类型数据（整数、浮点数、字符串）
 #
 # Supported types:
 # DEBUG			https://mavlink.io/en/messages/common.html#DEBUG

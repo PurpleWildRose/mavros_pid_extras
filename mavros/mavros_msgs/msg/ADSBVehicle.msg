@@ -1,6 +1,8 @@
 # The location and information of an ADSB vehicle
 #
 # https://mavlink.io/en/messages/common.html#ADSB_VEHICLE
+# ADS-B 飞行器消息
+# 存储通过 ADS-B（广播式自动相关监视）接收的其他飞行器信息（如位置、速度、航班号），用于避障或空域监控
 
 # [[[cog:
 # from pymavlink.dialects.v20 import common

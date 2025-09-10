@@ -1,4 +1,6 @@
 # Status of the MAVLink time synchroniser
+# 时间同步状态消息
+# 发布 ROS 与飞控的时间同步状态（同步误差、同步频率、是否锁定），确保多传感器数据的时间戳一致性
 
 std_msgs/Header header
 uint64 remote_timestamp_ns		# remote system timestamp (nanoseconds)

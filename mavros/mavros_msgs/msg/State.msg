@@ -1,4 +1,6 @@
 # Current autopilot state
+# 飞控状态消息
+# 核心状态汇总（飞行模式、解锁状态、系统错误码、MAVLink 协议版本），地面站显示的 “飞控状态” 主要来自此消息
 #
 # Known modes listed here:
 # http://wiki.ros.org/mavros/CustomModes

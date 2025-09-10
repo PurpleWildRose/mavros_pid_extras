@@ -1,4 +1,6 @@
 # Extended autopilot state
+# 扩展状态消息
+# 补充飞控核心状态外的扩展信息（如着陆 gear 状态、VTOL 机型的飞行模式切换状态、是否处于避障模式）
 #
 # https://mavlink.io/en/messages/common.html#EXTENDED_SYS_STATE
 
