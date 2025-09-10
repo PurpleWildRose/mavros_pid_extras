@@ -35,6 +35,14 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
 
+/**
+ * @brief UAS（Unmanned Aerial System，无人机系统）类是 MAVROS 插件的核心上下文，负责管理无人机（FCU，飞行控制单元）的连接、状态数据、坐标变换、时间同步等关键功能，为所有 MAVROS 插件（如 IMU、GPS、系统状态插件）提供统一的数据访问和工具接口。
+ */
+// UAS 类是 MAVROS 插件的 “数据中枢” 和 “工具箱”，主要解决以下问题：
+//		1. 统一数据存储：集中管理 FCU 发送的关键数据（如 IMU、GPS、心跳信息），避免插件间数据分散。
+//		2. FCU 连接抽象：封装 FCU 的通信接口，让插件无需关注底层通信细节（如串口、UDP）。
+//		3. 工具函数封装：提供模式字符串转换、坐标变换、时间同步、地理坐标转换等通用功能，减少插件重复代码。
+// 		4. 状态与事件通知：通过回调函数传递连接状态、能力变化等事件，实现插件间联动。
 namespace mavros {
 /**
  * @brief helper accessor to FCU link interface
@@ -65,18 +73,19 @@ namespace mavros {
  * - GPS data (@a mavplugin::GPSPlugin)
  */
 class UAS {
+	// 按功能可分为 数据更新与获取、通信与状态管理、工具函数 三类
 public:
 	// common enums used by UAS
-	using MAV_TYPE = mavlink::minimal::MAV_TYPE;
-	using MAV_AUTOPILOT = mavlink::minimal::MAV_AUTOPILOT;
-	using MAV_MODE_FLAG = mavlink::minimal::MAV_MODE_FLAG;
+	using MAV_TYPE = mavlink::minimal::MAV_TYPE;					// 无人机类型（如多旋翼、固定翼）
+	using MAV_AUTOPILOT = mavlink::minimal::MAV_AUTOPILOT;			// 飞控类型（如 PX4、ArduPilot）
+	using MAV_MODE_FLAG = mavlink::minimal::MAV_MODE_FLAG;			// 飞行模式标志（如解锁、HIL 模式）
 	using MAV_STATE = mavlink::minimal::MAV_STATE;
-	using MAV_CAP = mavlink::common::MAV_PROTOCOL_CAPABILITY;
+	using MAV_CAP = mavlink::common::MAV_PROTOCOL_CAPABILITY;		// “协议能力枚举”（MAV_PROTOCOL_CAPABILITY），用于标识无人机自动驾驶仪（或其他 MAVLink 设备）支持的 MAVLink 协议功能。每个枚举值对应一个独立的 “能力标志”，通过 位运算 可组合表示设备的综合能力（例如，同时支持任务指令和参数传输）。
 	using timesync_mode = utils::timesync_mode;
 
 	// other UAS aliases
-	using ConnectionCb = std::function<void(bool)>;
-	using CapabilitiesCb = std::function<void(MAV_CAP)>;
+	using ConnectionCb = std::function<void(bool)>;					// 连接状态变化回调（参数：是否连接）
+	using CapabilitiesCb = std::function<void(MAV_CAP)>;			// 飞控能力变化回调（参数：新能力）
 	using lock_guard = std::lock_guard<std::recursive_mutex>;
 	using unique_lock = std::unique_lock<std::recursive_mutex>;
 
@@ -84,12 +93,12 @@ public:
 	~UAS() {};
 
 	/**
-	 * @brief MAVLink FCU device conection
+	 * @brief FCU 通信接口指针（抽象串口 / UDP/TCP 连接，插件通过它发送 / 接收 MAVLink 消息）
 	 */
 	mavconn::MAVConnInterface::Ptr fcu_link;
 
 	/**
-	 * @brief Mavros diagnostic updater
+	 * @brief ROS 诊断更新器（用于发布飞控连接状态、数据健康度等诊断信息）
 	 */
 	diagnostic_updater::Updater diag_updater;
 
@@ -222,21 +231,29 @@ public:
 
 	/* -*- GPS data -*- */
 
-	//! Store GPS RAW data
+	// 存储 GPS 定位+精度信息（eph：水平精度，epv：垂直精度）
 	void update_gps_fix_epts(sensor_msgs::NavSatFix::Ptr &fix,
 		float eph, float epv,
 		int fix_type, int satellites_visible);
 
-	//! Returns EPH, EPV, Fix type and satellites visible
+	/**
+	 * get_gps_epts
+	 * 
+	 * @brief GPS 精度与状态数据的读取接口，用于从 UAS 类存储的缓存中获取 GPS 模块的关键性能指标（EPH、EPV）和定位状态（Fix Type、卫星数量），供其他插件或模块使用。
+	 * @param eph 水平定位精度（Estimated Horizontal Precision），单位：米（m）;表示 GPS 水平方向（经纬度）的定位误差范围（1σ 标准差），值越小精度越高。例：eph=2.5 表示水平定位误差大概率在 2.5 米内。
+	 * @param epv 垂直定位精度（Estimated Vertical Precision），单位：米（m）;表示 GPS 垂直方向（高度）的定位误差范围（1σ 标准差），值越小精度越高。例：epv=5.0 表示垂直定位误差大概率在 5.0 米内。
+	 * @param fix_type GPS 定位类型（Fix Type），无单位（枚举值）; [- 0：无定位（No Fix） /  - 1：2D 定位（仅经纬度，无高度） / - 2：3D 定位（经纬度 + 高度） / - 3：差分 GPS（DGPS，精度更高） / - 4：RTK 固定解（厘米级精度）]
+	 * @param satellites_visible 可见卫星数量（Satellites Visible），无单位（整数）;表示当前 GPS 模块能搜索到的卫星总数（非所有卫星都参与定位，需满足信号质量要求），数量越多通常定位越稳定。
+	 */
 	void get_gps_epts(float &eph, float &epv, int &fix_type, int &satellites_visible);
 
-	//! Retunrs last GPS RAW message
+	// 获取 GPS 数据
 	sensor_msgs::NavSatFix::Ptr get_gps_fix();
 
 	/* -*- GograpticLib utils -*- */
 
 	/**
-	 * @brief Geoid dataset used to convert between AMSL and WGS-84
+	 * @brief 地球大地水准面模型（用于 AMSL 高度与 WGS84 椭球面高度的转换）
 	 *
 	 * That class loads egm96_5 dataset to RAM, it is about 24 MiB.
 	 */
@@ -270,10 +287,10 @@ public:
 
 	/* -*- transform -*- */
 
-	tf2_ros::Buffer tf2_buffer;
+	tf2_ros::Buffer tf2_buffer;										// TF2 坐标变换缓存与监听器（解析 ROS 中的坐标变换，如机体坐标系→世界坐标系）
 	tf2_ros::TransformListener tf2_listener;
-	tf2_ros::TransformBroadcaster tf2_broadcaster;
-	tf2_ros::StaticTransformBroadcaster tf2_static_broadcaster;
+	tf2_ros::TransformBroadcaster tf2_broadcaster;					// 动态坐标变换发布器（发布无人机实时位姿变换, 如 map -> base_link）
+	tf2_ros::StaticTransformBroadcaster tf2_static_broadcaster;		// 静态坐标变换发布器（发布固定变换，如 GPS 天线→机体中心）
 
 	/**
 	 * @brief Add static transform. To publish all static transforms at once, we stack them in a std::vector.
@@ -478,20 +495,20 @@ private:
 	std::vector<ConnectionCb> connection_cb_vec;
 	std::vector<CapabilitiesCb> capabilities_cb_vec;
 
-	sensor_msgs::Imu::Ptr imu_enu_data;
-	sensor_msgs::Imu::Ptr imu_ned_data;
+	sensor_msgs::Imu::Ptr imu_enu_data;					// IMU 数据缓存（存储 ENU 坐标系的 IMU 数据）
+	sensor_msgs::Imu::Ptr imu_ned_data;					// IMU 数据缓存（存储 NED 坐标系的 IMU 数据）
 
-	sensor_msgs::NavSatFix::Ptr gps_fix;
+	sensor_msgs::NavSatFix::Ptr gps_fix;				// GPS 定位数据缓存（WGS84 坐标系的经纬度、高度）
 	float gps_eph;
 	float gps_epv;
 	int gps_fix_type;
 	int gps_satellites_visible;
 
-	std::atomic<uint64_t> time_offset;
+	std::atomic<uint64_t> time_offset;					// 飞控与 ROS 的时间偏移（纳秒，用于同步飞控时间与 ROS 时间）
 	timesync_mode tsync_mode;
 
 	std::atomic<bool> fcu_caps_known;
-	std::atomic<uint64_t> fcu_capabilities;
+	std::atomic<uint64_t> fcu_capabilities;				// 飞控支持的能力掩码（如是否支持 MAVLink 2.0、是否有 GPS）
 
 	std::string base_link_frame_id, odom_frame_id, map_frame_id;
 };
