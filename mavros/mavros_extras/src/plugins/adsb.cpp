@@ -149,5 +149,6 @@ private:
 }	// namespace extra_plugins
 }	// namespace mavros
 
+//注册插件，宏参数：plugin的实现类，plugin的基类
 #include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::extra_plugins::ADSBPlugin, mavros::plugin::PluginBase)
